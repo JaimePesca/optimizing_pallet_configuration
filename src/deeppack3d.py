@@ -51,6 +51,8 @@ import os, shutil, time
 from env import *
 from agent import *
 
+_MODELS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'models')
+
 heuristics = {
     'bl': bottom_left,
     'baf': best_area_fit, 
@@ -117,7 +119,7 @@ def deeppack3d(method, lookahead, *, n_iterations=100, seed=None, verbose=1, dat
             print(f'Testing with method "{method}" and lookahead {lookahead}...')
         
         if method == 'rl':
-            model_path = f'./models/k={lookahead}.h5'
+            model_path = os.path.join(_MODELS_DIR, f'k={lookahead}.h5')
             agent = Agent(env, train=False, verbose=verbose > 0, visualize=visualize, batch_size=batch_size)
             agent.q_net = tf.keras.models.load_model(model_path, compile=False)
             agent.eps = 0.0
