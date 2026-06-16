@@ -1,0 +1,25 @@
+# Modelos entrenados (archivos grandes — respaldar en OneDrive/Drive)
+models/*.h5
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Entornos virtuales
+env/
+venv/
+.env/
+
+# Outputs generados
+outputs/
+
+# Sistema
+.DS_Store
+Thumbs.db
