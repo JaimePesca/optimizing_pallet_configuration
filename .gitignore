@@ -23,3 +23,21 @@ outputs/
 # Sistema
 .DS_Store
 Thumbs.db
+
+# Claude Code internal files
+.claude/
+
+# LaTeX auxiliary files
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+
+# Original confidential Word document
+Paper/Capstone_EG_Manuscript_4th deliverable.docx
+
+# Extracted MDPI template zip (Definitions/ is kept, raw extract not needed)
+Paper/mdpi_template_extracted/

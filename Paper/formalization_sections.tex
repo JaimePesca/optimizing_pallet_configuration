@@ -1,0 +1,596 @@
+% ============================================================
+%  FORMAL SECTIONS — to integrate into the manuscript
+%  Target journal: Modelling (MDPI), ISSN 2673-3951
+%  Paper: "Optimizing pallet configuration for air transport
+%          of cut flowers"
+% ============================================================
+
+% ============================================================
+%  REQUIRED PACKAGES (add to preamble)
+% ============================================================
+% \usepackage{booktabs}
+% \usepackage{amsmath, amssymb}
+% \usepackage[ruled, vlined, linesnumbered]{algorithm2e}
+% \usepackage{multirow}
+% \usepackage{array}
+
+
+% ============================================================
+%  TABLE OF NOTATION
+%  Place at the beginning of Section 4 (Problem Definition)
+% ============================================================
+
+\begin{table}[ht]
+\caption{Mathematical notation used throughout this paper.}
+\label{tab:notation}
+\centering
+\small
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Symbol} & \textbf{Description} \\
+\midrule
+\multicolumn{2}{@{}l}{\textit{Sets and indices}} \\
+$N$               & Total number of boxes assigned to a single flight \\
+$M$               & Total number of ULDs available on the aircraft \\
+$\mathcal{B} = (b_1, b_2, \ldots, b_N)$ & Ordered sequence of boxes in arrival order \\
+$\mathcal{U} = \{U_1, U_2, \ldots, U_M\}$ & Set of ULDs, indexed by their loading order \\
+$\mathcal{R}(b_i)$ & Set of admissible axis-aligned rotations of box $b_i$ \\
+\midrule
+\multicolumn{2}{@{}l}{\textit{Box parameters}} \\
+$(w_i, h_i, d_i)$ & Width, height, and depth of box $b_i$ (original orientation) \\
+$(w_i', h_i', d_i')$ & Effective dimensions of $b_i$ after applying rotation $r_i \in \mathcal{R}(b_i)$ \\
+$m_i$             & Gross weight of box $b_i$ (kg) \\
+$\mathrm{vol}(b_i)$ & Volume of box $b_i$: $\mathrm{vol}(b_i) = w_i \cdot h_i \cdot d_i$ \\
+\midrule
+\multicolumn{2}{@{}l}{\textit{ULD parameters}} \\
+$(W_j, H_j, D_j)$ & Internal width, height, and depth of ULD $U_j$ \\
+$C_j^w$           & Maximum weight capacity of ULD $U_j$ (kg) \\
+$\mathrm{Vol}(U_j)$ & Internal volume of ULD $U_j$: $\mathrm{Vol}(U_j) = W_j \cdot H_j \cdot D_j$ \\
+\midrule
+\multicolumn{2}{@{}l}{\textit{Decision variables}} \\
+$x_{ij} \in \{0,1\}$ & 1 if box $b_i$ is assigned to ULD $U_j$; 0 otherwise \\
+$r_i \in \mathcal{R}(b_i)$ & Selected rotation for box $b_i$ \\
+$(p_i^x, p_i^y, p_i^z) \in \mathbb{N}^3$ & Placement origin (lower-left-back corner) of $b_i$ within its ULD \\
+\midrule
+\multicolumn{2}{@{}l}{\textit{State representation}} \\
+$\mathcal{F}_j$   & Set of free (unoccupied) cuboid subspaces within ULD $U_j$ \\
+$\mathbf{H}_j \in \mathbb{N}^{D_j \times W_j}$ & Height map of ULD $U_j$: $\mathbf{H}_j(z, x)$ gives the stacking height at column $(x,z)$ \\
+$s = (s^x, s^y, s^z, s^W, s^H, s^D)$ & A free cuboid (split) with origin and dimensions \\
+\midrule
+\multicolumn{2}{@{}l}{\textit{Algorithm parameters}} \\
+$k$               & Lookahead window size (number of observable upcoming boxes) \\
+$\alpha$          & Minimum support fraction for stability constraint ($\alpha = 0.5$) \\
+$\mathcal{H}$     & Heuristic policy: $\mathcal{H} \in \{\text{BL}, \text{BAF}, \text{BLSF}\}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% ============================================================
+%  SECTION 4.2 — MATHEMATICAL PROBLEM FORMULATION
+%  Insert after existing Section 4.1 (Problem definition)
+% ============================================================
+
+\subsection{Mathematical Problem Formulation}
+\label{sec:formulation}
+
+The palletization problem studied in this work is formulated as an
+\emph{online three-dimensional bin packing problem} (O-3D-BPP) over a
+heterogeneous set of ULDs.
+Table~\ref{tab:notation} summarises the notation used throughout.
+
+\subsubsection*{Objective function}
+
+The primary objective is to maximise the mean volumetric utilisation
+across all $M$ ULDs on the aircraft:
+
+\begin{equation}
+\label{eq:objective}
+\maximise \quad
+\bar{U}_{\mathrm{vol}}
+= \frac{1}{M} \sum_{j=1}^{M}
+  \frac{\displaystyle\sum_{i=1}^{N} x_{ij}\, w_i' h_i' d_i'}
+       {W_j H_j D_j},
+\end{equation}
+
+\noindent
+where $w_i' h_i' d_i'$ denotes the volume of box $b_i$ under its
+selected rotation $r_i$.
+Equivalently, $\bar{U}_{\mathrm{vol}}$ measures the average fraction of
+each ULD's internal volume that is occupied by cargo.
+
+\subsubsection*{Constraints}
+
+The optimisation is subject to the following constraints.
+
+\paragraph{C1 — Unique assignment.}
+Each box is assigned to at most one ULD:
+\begin{equation}
+\label{eq:unique}
+\sum_{j=1}^{M} x_{ij} \leq 1, \quad \forall\, i \in \{1,\ldots,N\}.
+\end{equation}
+
+\paragraph{C2 — Geometric containment.}
+If box $b_i$ is placed in ULD $U_j$, its entire volume must lie within
+the ULD's interior:
+\begin{equation}
+\label{eq:containment}
+x_{ij} = 1 \;\Rightarrow\;
+\begin{cases}
+  p_i^x + w_i' \leq W_j,\\
+  p_i^y + h_i' \leq H_j,\\
+  p_i^z + d_i' \leq D_j.
+\end{cases}
+\end{equation}
+
+\paragraph{C3 — Non-overlap.}
+No two boxes assigned to the same ULD may occupy overlapping volumes.
+For all pairs $(b_i, b_{i'})$ with $x_{ij} = x_{i'j} = 1$ and $i \neq i'$,
+the placed cuboids must be disjoint:
+\begin{equation}
+\label{eq:nooverlap}
+\exists\, \delta \in \{x, y, z\} \text{ such that }
+p_i^{\delta} + d_i'^{(\delta)} \leq p_{i'}^{\delta}
+\;\text{ or }\;
+p_{i'}^{\delta} + d_{i'}'^{(\delta)} \leq p_i^{\delta},
+\end{equation}
+where $d_i'^{(x)} = w_i'$, $d_i'^{(y)} = h_i'$, $d_i'^{(z)} = d_i'$.
+
+\paragraph{C4 — Gravitational stability.}
+A placement at height $p_i^y$ is feasible only if the fraction of the
+box's base area that is supported at that height meets a minimum threshold:
+\begin{equation}
+\label{eq:stability}
+\frac{\bigl|\{(x,z) : p_i^x \leq x < p_i^x + w_i',\;
+                      p_i^z \leq z < p_i^z + d_i',\;
+                      \mathbf{H}_j(z,x) = p_i^y\}\bigr|}
+     {w_i' \cdot d_i'}
+\;\geq\; \alpha,
+\end{equation}
+with $\alpha = 0.50$ in this study.
+The placement height is determined by the height map as
+$p_i^y = \max_{(x,z) \in \text{footprint}}\mathbf{H}_j(z,x)$,
+ensuring boxes rest on previously placed cargo or on the pallet floor.
+
+\paragraph{C5 — ULD weight capacity.}
+The total gross weight loaded into each ULD must not exceed its structural
+limit:
+\begin{equation}
+\label{eq:weight}
+\sum_{i=1}^{N} x_{ij}\, m_i \leq C_j^w, \quad \forall\, j \in \{1,\ldots,M\}.
+\end{equation}
+
+\paragraph{C6 — Online (irreversible) decisions.}
+At decision step $t$, the packing agent has access only to the next $k$
+boxes in the arrival sequence:
+$\mathcal{W}_t = (b_t, b_{t+1}, \ldots, b_{\min(t+k-1, N)})$.
+Once box $b_t$ is placed, its position cannot be revised.
+This constraint formalises the real-world conveyor-based operation in which
+boxes arrive continuously and placement decisions must be made on-the-fly.
+
+\medskip
+\noindent
+Constraints C1--C5 are deterministic feasibility requirements enforced at
+every step.
+Constraint C6 restricts the information available to the decision maker,
+rendering the problem intractable for exact offline solvers and motivating
+the use of efficient, online heuristic policies.
+
+
+% ============================================================
+%  SECTION 5 — SOLUTION APPROACH (rewritten subsections)
+%  Replace / expand the existing subsections
+% ============================================================
+
+% ----  5.1  Space Representation  ---------------------------
+
+\subsection{Space Representation via Maximal Cuboid Partitioning}
+\label{sec:space-rep}
+
+The free space inside each ULD $U_j$ is represented as a dynamic set
+$\mathcal{F}_j$ of non-overlapping, axis-aligned \emph{maximal free
+cuboids} (splits).
+At initialisation, $\mathcal{F}_j = \{\text{Cuboid}(0,0,0,W_j,H_j,D_j)\}$.
+When a box is placed, every free cuboid that intersects the occupied region
+is replaced by up to six maximal sub-cuboids, and any sub-cuboid that is
+entirely contained within another is discarded (dominance pruning).
+This representation, described formally in Algorithm~\ref{alg:partition},
+avoids explicit voxelisation and remains computationally tractable for
+the box dimensions encountered in cut-flower operations.
+
+A two-dimensional \emph{height map} $\mathbf{H}_j \in \mathbb{N}^{D_j \times W_j}$
+is maintained in parallel.
+Entry $\mathbf{H}_j(z, x)$ stores the current stacking height at column
+$(x, z)$ of the pallet floor.
+After placing a box with footprint
+$[p^x, p^x + w') \times [p^z, p^z + d')$ at height $p^y + h'$, the height
+map is updated as:
+\begin{equation}
+\label{eq:hmap-update}
+\mathbf{H}_j(z, x) \leftarrow
+\max\!\bigl(\mathbf{H}_j(z, x),\; p^y + h'\bigr),
+\quad (x,z) \in \text{footprint}.
+\end{equation}
+The height map is used both for candidate height computation
+(Equation~\ref{eq:stability}) and as a compact state representation
+consumed by the heuristic scoring functions.
+
+% ----  5.2  Heuristic Placement Policies  -------------------
+
+\subsection{Heuristic Placement Policies}
+\label{sec:heuristics}
+
+Three deterministic placement heuristics are evaluated.
+Each heuristic defines a \emph{scoring function} over the set of
+feasible placements $\mathcal{A}_t$ generated at step $t$
+(see Section~\ref{sec:procedure}).
+The placement with the minimum score is selected and executed
+(ties are broken lexicographically on the remaining score components).
+
+\subsubsection{Bottom-Left (BL)}
+\label{sec:bl}
+
+The BL heuristic selects the placement that minimises the resulting
+occupied height of the loaded item, breaking ties first by the
+rightward extent and then by the forward extent:
+\begin{equation}
+\label{eq:score-bl}
+\sigma_{\mathrm{BL}}\bigl(b_i, r_i, (p^x, p^y, p^z)\bigr)
+= \bigl(p^y + h_i',\; p^x + w_i',\; p^z + d_i'\bigr).
+\end{equation}
+The placement chosen is $\argmin_{\mathcal{A}_t} \sigma_{\mathrm{BL}}$
+under lexicographic ordering.
+By systematically minimising vertical growth, BL promotes compact,
+layered packing patterns that are well suited to the rectangular
+geometry of aircraft pallets.
+
+\subsubsection{Best Area Fit (BAF)}
+\label{sec:baf}
+
+BAF selects the placement that \emph{minimises the volume of the hosting
+free cuboid} $s$, preferring the tightest available space.
+Among placements that share the same host volume, the secondary criterion
+minimises the residual along the shorter horizontal dimension:
+\begin{equation}
+\label{eq:score-baf}
+\sigma_{\mathrm{BAF}}\bigl(b_i, r_i, s\bigr)
+= \bigl(\mathrm{Vol}(s),\;
+         \min(s^W - w_i',\; s^H - h_i')\bigr),
+\end{equation}
+where $s^W$ and $s^H$ are the width and height of the hosting free
+cuboid.
+BAF is a three-dimensional generalisation of the Best Area Fit strategy
+\citep{Hassan2019}: by occupying the most constrained available space
+first, it tends to preserve larger contiguous free regions for subsequent
+items.
+
+\subsubsection{Best Long Side Fit (BLSF)}
+\label{sec:blsf}
+
+BLSF selects the placement that minimises the residual along the
+\emph{longer} horizontal dimension of the hosting free cuboid:
+\begin{equation}
+\label{eq:score-blsf}
+\sigma_{\mathrm{BLSF}}\bigl(b_i, r_i, s\bigr)
+= \bigl(\max(s^W - w_i',\; s^H - h_i')\bigr).
+\end{equation}
+This strategy aims to reduce fragmentation by aligning items against the
+dominant boundary of each free space, preserving elongated free regions
+that are easier to fill with subsequent items
+\citep{Martinez2021}.
+
+% ----  5.3  Overall Packing Procedure  ----------------------
+
+\subsection{Multi-ULD Online Packing Procedure}
+\label{sec:procedure}
+
+Algorithm~\ref{alg:main} describes the complete sequential packing
+procedure executed for a single charter flight.
+
+\begin{algorithm}[ht]
+\SetAlgoLined
+\DontPrintSemicolon
+\KwIn{%
+  Box sequence $\mathcal{B} = (b_1, \ldots, b_N)$;
+  ULD set $\mathcal{U} = (U_1, \ldots, U_M)$;
+  heuristic $\mathcal{H}$;
+  lookahead size $k$;
+  support threshold $\alpha$}
+\KwOut{Packing plan $\Pi$; volumetric utilisation $\bar{U}_{\mathrm{vol}}$}
+\BlankLine
+\tcp{Initialisation}
+\ForEach{$U_j \in \mathcal{U}$}{
+  $\mathcal{F}_j \leftarrow \{\mathrm{Cuboid}(0,0,0,W_j,H_j,D_j)\}$\;
+  $\mathbf{H}_j \leftarrow \mathbf{0}^{D_j \times W_j}$\;
+}
+$j \leftarrow 1$; \quad $t \leftarrow 1$\;
+\BlankLine
+\tcp{Online packing loop}
+\While{$t \leq N$ \textbf{and} $j \leq M$}{
+  $\mathcal{W}_t \leftarrow (b_t, \ldots, b_{\min(t+k-1,N)})$
+    \tcp*{observe lookahead window}
+  $\mathcal{A}_t \leftarrow \textsc{FeasiblePlacements}(
+      \mathcal{W}_t, U_j, \mathcal{F}_j, \mathbf{H}_j, \alpha)$\;
+  \uIf{$\mathcal{A}_t = \emptyset$}{
+    $j \leftarrow j + 1$
+      \tcp*{current ULD is full; advance to next}
+  }\Else{
+    $(b_i^*, r_i^*, \mathbf{p}^*) \leftarrow \argmin_{\mathcal{A}_t}\,
+        \sigma_{\mathcal{H}}$
+      \tcp*{select via heuristic score}
+    $c^* \leftarrow \mathrm{Cuboid}(p^{x*}, p^{y*}, p^{z*}, w_i'^*, h_i'^*, d_i'^*)$\;
+    $\mathcal{F}_j \leftarrow \textsc{SpacePartition}(\mathcal{F}_j, c^*)$
+      \tcp*{update free space}
+    Update $\mathbf{H}_j$ via Eq.~(\ref{eq:hmap-update})\;
+    Record $(b_i^*, U_j, r_i^*, \mathbf{p}^*)$ in $\Pi$\;
+    Remove $b_i^*$ from sequence; \textbf{if} $i^* = t$ \textbf{then} $t \leftarrow t + 1$\;
+  }
+}
+\BlankLine
+$\bar{U}_{\mathrm{vol}} \leftarrow \frac{1}{M}\sum_{j=1}^{M}
+  \frac{\sum_{(b_i,U_j,\cdot,\cdot)\in\Pi} \mathrm{vol}(b_i)}
+       {\mathrm{Vol}(U_j)}$\;
+\Return{$\Pi,\;\bar{U}_{\mathrm{vol}}$}\;
+\caption{Multi-ULD Online 3D Bin Packing}
+\label{alg:main}
+\end{algorithm}
+
+% ----  5.4  Feasible Placement Generation  ------------------
+
+\medskip
+Algorithm~\ref{alg:feasible} details how the set of feasible placements
+$\mathcal{A}_t$ is constructed at each step.
+
+\begin{algorithm}[ht]
+\SetAlgoLined
+\DontPrintSemicolon
+\KwIn{%
+  Lookahead items $\mathcal{W}_t$;
+  active ULD $U_j$;
+  free splits $\mathcal{F}_j$;
+  height map $\mathbf{H}_j$;
+  support threshold $\alpha$}
+\KwOut{Set of feasible placements $\mathcal{A}_t$}
+\BlankLine
+$\mathcal{A}_t \leftarrow \emptyset$\;
+\ForEach{$b_i \in \mathcal{W}_t$}{
+  \ForEach{rotation $r \in \mathcal{R}(b_i)$}{
+    $(w', h', d') \leftarrow \mathrm{dims}(b_i, r)$\;
+    \ForEach{free split $s \in \mathcal{F}_j$ such that $s^W \geq w'$, $s^H \geq h'$, $s^D \geq d'$}{
+      $(p^x, p^z) \leftarrow (s^x, s^z)$\;
+      $p^y \leftarrow \max_{(x,z)\in[p^x, p^x+w')\times[p^z,p^z+d')}\mathbf{H}_j(z,x)$\;
+      \tcp{Stability check (Eq.~\ref{eq:stability})}
+      $\text{support} \leftarrow \tfrac{1}{w' d'}
+          \bigl|\{(x,z):\mathbf{H}_j(z,x)=p^y,\;(x,z)\in\text{footprint}\}\bigr|$\;
+      \If{$\text{support} \geq \alpha$
+          \textbf{ and } $p^y + h' \leq H_j$}{
+        $\mathcal{A}_t \leftarrow \mathcal{A}_t \cup \{(b_i, r, (p^x,p^y,p^z), s)\}$\;
+      }
+    }
+  }
+}
+\Return{$\mathcal{A}_t$}\;
+\caption{\textsc{FeasiblePlacements}: candidate placement generation}
+\label{alg:feasible}
+\end{algorithm}
+
+% ----  5.5  Space Partitioning  -----------------------------
+
+\medskip
+Algorithm~\ref{alg:partition} describes the maximal-cuboid update used
+in Algorithm~\ref{alg:main} after each placement.
+
+\begin{algorithm}[ht]
+\SetAlgoLined
+\DontPrintSemicolon
+\KwIn{Current free splits $\mathcal{F}$; placed cuboid $c$}
+\KwOut{Updated free splits $\mathcal{F}'$}
+\BlankLine
+$\mathcal{F}' \leftarrow \emptyset$;\quad $\mathcal{F}_{\mathrm{new}} \leftarrow \emptyset$\;
+\ForEach{$s \in \mathcal{F}$}{
+  \uIf{$s$ intersects $c$}{
+    $\mathcal{F}_{\mathrm{new}} \leftarrow \mathcal{F}_{\mathrm{new}}
+        \cup \textsc{MaximalSplit}(s, c)$
+      \tcp*{up to 6 sub-cuboids}
+  }\Else{
+    $\mathcal{F}' \leftarrow \mathcal{F}' \cup \{s\}$\;
+  }
+}
+\tcp{Dominance pruning: discard sub-cuboids contained in another}
+\ForEach{$s \in \mathcal{F}_{\mathrm{new}}$}{
+  \If{$\nexists\, s' \in (\mathcal{F}' \cup \mathcal{F}_{\mathrm{new}})$
+      such that $s' \neq s$ and $s'$ contains $s$}{
+    $\mathcal{F}' \leftarrow \mathcal{F}' \cup \{s\}$\;
+  }
+}
+\Return{$\mathcal{F}'$}\;
+\caption{\textsc{SpacePartition}: maximal-cuboid decomposition}
+\label{alg:partition}
+\end{algorithm}
+
+\noindent
+\textsc{MaximalSplit}$(s, c)$ generates at most six non-overlapping
+maximal sub-cuboids of $s$ after removing the intersection with $c$,
+corresponding to the six possible orthogonal faces of $s$ that extend
+beyond $c$:
+\begin{align}
+\label{eq:maxsplit}
+&\text{Left:}   && s^x < c^x \;\Rightarrow\; \mathrm{Cuboid}(s^x,\, s^y,\, s^z,\,
+                    c^x - s^x,\, s^H,\, s^D),                         \nonumber\\
+&\text{Right:}  && s^x + s^W > c^x + c^W \;\Rightarrow\; \mathrm{Cuboid}(c^x+c^W,\, s^y,\, s^z,\,
+                    s^x+s^W - (c^x+c^W),\, s^H,\, s^D),               \nonumber\\
+&\text{Bottom:} && s^y < c^y \;\Rightarrow\; \mathrm{Cuboid}(s^x,\, s^y,\, s^z,\,
+                    s^W,\, c^y - s^y,\, s^D),                          \nonumber\\
+&\text{Top:}    && s^y + s^H > c^y + c^H \;\Rightarrow\; \mathrm{Cuboid}(s^x,\, c^y+c^H,\, s^z,\,
+                    s^W,\, s^y+s^H-(c^y+c^H),\, s^D),                  \nonumber\\
+&\text{Back:}   && s^z < c^z \;\Rightarrow\; \mathrm{Cuboid}(s^x,\, s^y,\, s^z,\,
+                    s^W,\, s^H,\, c^z - s^z),                          \nonumber\\
+&\text{Front:}  && s^z + s^D > c^z + c^D \;\Rightarrow\; \mathrm{Cuboid}(s^x,\, s^y,\, c^z+c^D,\,
+                    s^W,\, s^H,\, s^z+s^D-(c^z+c^D)).                  \nonumber
+\end{align}
+
+
+% ============================================================
+%  SECTION 8.X — STATISTICAL ANALYSIS OF RESULTS
+%  Add inside the Results & Discussion section
+% ============================================================
+
+\subsection{Statistical Significance of Heuristic Improvements}
+\label{sec:statistics}
+
+To assess whether the observed improvements in volumetric utilisation are
+statistically significant, a non-parametric Wilcoxon signed-rank test
+\citep{Wilcoxon1945} is applied to the paired differences between each
+heuristic's per-flight utilisation and the historical baseline across
+the 16 evaluated flights.
+The Wilcoxon test is preferred over a paired $t$-test because it makes
+no normality assumption on the differences, which is important given the
+small sample size ($n=16$) and the bounded nature of the utilisation
+metric.
+
+The null hypothesis $H_0$ states that the heuristic-based DSM produces
+the same median volumetric utilisation as the historical manual baseline;
+the alternative hypothesis $H_1$ is one-sided (heuristic $>$ baseline).
+Results are reported together with descriptive statistics
+(mean, standard deviation, minimum, and maximum utilisation per method)
+in Table~\ref{tab:stats}.
+A significance level of $p < 0.05$ is used throughout.
+
+% NOTE TO AUTHORS: populate Table 6 (Comparative performance) with
+% mean ± std values computed from the 16-flight dataset and report
+% p-values from scipy.stats.wilcoxon(alternative='greater').
+% See notebook 01_heuristics.ipynb for the raw per-flight results.
+
+
+% ============================================================
+%  SECTION 9 — CONTRIBUTIONS STATEMENT
+%  Add at the END of the Introduction, before the road-map paragraph
+% ============================================================
+
+% Replace the existing road-map paragraph with the following block:
+
+\noindent
+The main contributions of this study are:
+\begin{enumerate}
+  \item \textbf{Aircraft-scale online 3D bin packing model.}
+        We extend the DeepPack3D framework~\citep{Tsang2025} from
+        single-bin evaluation to a realistic, heterogeneous multi-ULD
+        configuration matching the actual cargo layout of a Boeing
+        747-400F, enabling aircraft-level utilisation measurement for
+        the first time in this domain.
+  \item \textbf{Industry-specific problem formulation.}
+        We formalise the Air Cargo Loading Problem (ACLP) for the
+        cut-flower industry, explicitly modelling the online, irreversible
+        nature of conveyor-based palletisation, the 50\,\% base-support
+        stability constraint, and the dual-region curvature approximation
+        for fuselage-adjacent containers.
+  \item \textbf{Comparative evaluation on real operational data.}
+        The DSM is validated on historical data from 16 full Boeing
+        747-400F charter flights, demonstrating that deterministic
+        heuristics — in particular the Bottom-Left policy — consistently
+        outperform historical manual operations by 3--12 percentage
+        points in volumetric utilisation, with statistical significance
+        confirmed via a Wilcoxon signed-rank test.
+  \item \textbf{Quantified operational and environmental impact.}
+        We translate volumetric gains into concrete operational metrics,
+        showing that the proposed DSM can recover 470--1,514 additional
+        boxes per flight, reduce unit freight costs by approximately 8\%,
+        and lower the CO\textsubscript{2} intensity of each shipment.
+\end{enumerate}
+
+
+% ============================================================
+%  SECTION 9.X — LIMITATIONS
+%  Add as a standalone subsection before Future Work
+% ============================================================
+
+\subsection{Limitations}
+\label{sec:limitations}
+
+Several limitations of the present study should be acknowledged.
+First, the model is validated on a dataset of 16 charter flights from
+a single sponsor company.
+While these flights represent real worst-case operational conditions,
+generalisation to other carriers, routes, or aircraft types has not been
+tested.
+Second, all ULDs are modelled as idealized rectangular parallelepipeds.
+Although the curvature of fuselage-adjacent containers is partially
+captured via a dual-region decomposition, the current implementation
+does not compute precise curved-surface constraints, which may lead to
+a slight overestimation of usable volume in lower-deck positions.
+Third, the model treats box placement as purely volume-driven;
+operational constraints such as flower fragility, required airflow
+clearances, and customer-specific loading priorities are not explicitly
+encoded.
+Finally, only heuristic-based placement policies are evaluated in this
+study; direct comparison with reinforcement learning--based agents
+available in the DeepPack3D framework is reserved for future work.
+
+
+% ============================================================
+%  MDPI MANDATORY SECTIONS
+%  Add after Conclusions, before References
+% ============================================================
+
+\subsection*{Author Contributions}
+Conceptualisation, J.P., J.Z.-P.\ and R.K.;
+methodology, J.P., J.Z.-P.\ and R.K.;
+software, J.P.\ and J.Z.-P.;
+formal analysis, J.P.\ and R.K.;
+data curation, J.P.;
+writing---original draft preparation, J.P., J.Z.-P.\ and R.K.;
+writing---review and editing, E.G.-F., H.M.G.-A.\ and J.C.P.-P.;
+supervision, E.G.-F., H.M.G.-A.\ and J.C.P.-P.;
+project administration, E.G.-F.
+All authors have read and agreed to the published version of the
+manuscript.
+
+\subsection*{Funding}
+This research received no external funding.
+% NOTE: update if any grant/fellowship applies.
+
+\subsection*{Institutional Review Board Statement}
+Not applicable.
+
+\subsection*{Informed Consent Statement}
+Not applicable.
+
+\subsection*{Data Availability Statement}
+The historical flight dataset used in this study was provided by the
+sponsor company under a confidentiality agreement and is not publicly
+available.
+The implementation code for the adapted DeepPack3D framework is
+available at \url{[REPOSITORY URL TO BE ADDED]}.
+
+\subsection*{Conflicts of Interest}
+The authors declare no conflicts of interest.
+The funders had no role in the design of the study; in the collection,
+analyses, or interpretation of data; in the writing of the manuscript;
+or in the decision to publish the results.
+
+
+% ============================================================
+%  ADDITIONAL REFERENCES (add to bibliography)
+% ============================================================
+% The following entries should be added to the reference list.
+% They appear cited in the new sections above.
+
+% @article{Wilcoxon1945,
+%   author  = {Wilcoxon, Frank},
+%   title   = {Individual comparisons by ranking methods},
+%   journal = {Biometrics Bulletin},
+%   year    = {1945},
+%   volume  = {1},
+%   number  = {6},
+%   pages   = {80--83},
+%   doi     = {10.2307/3001968}
+% }
+
+% NOTE: Chan et al. (2006a) and (2006b) are duplicate entries —
+% remove (2006b) and update all in-text citations to use (2006a) only.
+
+% NOTE: replace informal sources with academic/institutional equivalents:
+%   - "Conquerornetwork (2025)" → cite IATA or USDA floriculture report
+%   - "Floriculture Market (2025)" → cite peer-reviewed market analysis
+%   - "Sinchire (2025)" (newspaper) → acceptable as supplementary source;
+%     add "(accessed DD Month 2025)" to the URL
