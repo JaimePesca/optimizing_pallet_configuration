@@ -31,11 +31,12 @@
 \newcommand{\orcidauthorA}{0009-0003-8221-0924}
 
 \Author{
-  Jaime Pesca $^{1,}$\orcidA{} and
-  Edgar Gutierrez-Franco $^{2}$
+  Jaime Pesca $^{1,}$\orcidA{},
+  Edgar Gutierrez-Franco $^{2}$ and
+  Christopher Mejia-Argueta $^{2}$
 }
 
-\AuthorNames{Jaime Pesca and Edgar Gutierrez-Franco}
+\AuthorNames{Jaime Pesca, Edgar Gutierrez-Franco and Christopher Mejia-Argueta}
 
 \address{%
 $^{1}$ \quad Faculty of Engineering, Universidad de La Sabana,
@@ -235,6 +236,26 @@ distributed across the main deck and lower holds
   compartment ULD positions and door clearance dimensions.
   Source: Boeing Commercial Airplanes technical documentation.}
 \label{fig:aircraft}
+\end{figure}
+
+To ground the modelling assumptions in Section~\ref{sec:limitations} in
+actual practice, the authors conducted a site visit to the SC's export
+cargo terminal at El Dorado International Airport (Bogot\'{a}) to observe
+the manual palletising process firsthand (Figure~\ref{fig:visit}).
+Boxes of heterogeneous heights are stacked and interlocked by hand onto
+the PMC pallet to conform to the contoured, sloped profile required by the
+aircraft's lower-deck curvature, consistent with the automated conveyor
+loading procedure described above.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.62\textwidth]{figures/fig_site_visit.jpg}
+\caption{Manual palletising of cut flower boxes observed during the site
+  visit to the export cargo terminal at El Dorado International Airport
+  (Bogot\'{a}). Boxes of varying heights are hand-stacked to conform to
+  the ULD's contoured profile; brand markings have been obscured.
+  Photograph by the authors.}
+\label{fig:visit}
 \end{figure}
 
 
@@ -859,15 +880,26 @@ A dual-bin approximation partially captures fuselage curvature.
 
 First, validation is limited to 16~charter flights from a single company;
 generalisation to other carriers, routes, or aircraft has not been tested.
-Second, all ULDs are modelled as rectangular parallelepipeds; the curvature
-approximation may slightly overestimate usable volume in lower-deck
-positions.
-Third, the model is purely volume-driven; operational constraints such as
-flower fragility, airflow clearances, and customer-specific priorities are
-not explicitly encoded.
-Finally, only heuristic policies are evaluated; direct comparison with
-the reinforcement learning components of DeepPack3D is reserved for future
-work.
+Second, all ULDs are modelled as rectangular parallelepipeds; because this
+approximation neglects fuselage curvature, it tends to \emph{underestimate},
+rather than overestimate, the usable volume in lower-deck positions.
+Third, the model is purely volume-driven. This reflects the operational
+reality of the cargo, confirmed through an on-site visit to the export
+cargo terminal at El Dorado International Airport (Bogot\'{a}) to observe
+the real palletising process (Figure~\ref{fig:visit}): cut flower boxes
+are consistently well
+below the aircraft's weight limits, so weight capacity is non-binding and
+was intentionally left out of the model. However, this volume-only
+formulation does not explicitly encode other operational constraints such
+as box fragility, airflow clearances, and customer-specific priorities,
+which should be incorporated in future work.
+Finally, preliminary experiments were conducted with the reinforcement
+learning components of DeepPack3D; however, training a policy at the scale
+of the full multi-ULD aircraft configuration required computational
+resources and training time beyond what was available for this study, and
+the comparisons that could be completed did not achieve results
+competitive with the heuristic policies evaluated here. A more thorough
+RL comparison is therefore reserved for future work.
 
 \subsection{Future Work}
 \label{sec:future}
@@ -883,13 +915,13 @@ the extended multi-ULD aircraft framework.
 % MDPI MANDATORY SECTIONS
 \vspace{6pt}
 
-\authorcontributions{Conceptualisation, J.P.\ and E.G.-F.;
+\authorcontributions{Conceptualisation, J.P., E.G.-F.\ and C.M.-A.;
 methodology, J.P.\ and E.G.-F.;
 software, J.P.;
 formal analysis, J.P.;
-data curation, J.P.;
+data curation, J.P.\ and C.M.-A.;
 writing---original draft preparation, J.P.;
-writing---review and editing, J.P.\ and E.G.-F.;
+writing---review and editing, J.P., E.G.-F.\ and C.M.-A.;
 supervision, E.G.-F.;
 project administration, E.G.-F.
 All authors have read and agreed to the published version of the manuscript.}
