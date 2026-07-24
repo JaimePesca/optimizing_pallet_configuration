@@ -1,64 +1,110 @@
-# Optimizing Pallet Configuration
+# DeepPack3D
+**DeepPack3D** is a Python-based 3D bin-packing software optimized for robotic palletization systems. It supports various methods, including reinforcement learning (RL) and heuristic baselines, and provides flexible options for data input and visualization.
 
-MIT GCLOG Capstone Project — 3D bin packing for robotic palletization using Deep Reinforcement Learning and heuristic baselines.
+<img src="./outputs/0_0_0.jpg" width="200"><img src="./outputs/0_1_0.jpg" width="200"><img src="./outputs/0_44_0.jpg" width="200">
 
-## Problem
-
-Items arrive sequentially on a conveyor belt and must be placed in real time into a fixed-size bin (25×32×30 units) to maximize space utilization. The algorithm looks ahead `k` items to make better decisions.
-
-## Methods
-
-| Method | Type | Description |
-|--------|------|-------------|
-| `rl`   | Deep Reinforcement Learning | CNN-based DQN that learns placement policies |
-| `bl`   | Heuristic | Bottom-Left |
-| `baf`  | Heuristic | Best Area Fit |
-| `bssf` | Heuristic | Best Shortest Side Fit |
-| `blsf` | Heuristic | Best Longest Side Fit |
-
-## Project Structure
-
-```
-├── src/            # Core Python source code
-├── notebooks/      # Experiments and results
-│   ├── 01_heuristics.ipynb       # Heuristic baselines evaluation
-│   ├── 02_rl_training.ipynb      # RL model training and testing
-│   └── 03_rl_vs_heuristics.ipynb # Method comparison
-├── data/
-│   ├── input_synthetic.txt   # 1000 synthetic items (6–12 units each dim)
-│   └── input_worst_case.txt  # Real worst-case dataset (scaled ÷10)
-├── models/         # Trained RL models (not tracked in git — stored in OneDrive)
-└── requirements.txt
-```
+## Features
+- Supports multiple methods: Reinforcement Learning (**RL**), Best Lookahead (**BL**), Best Area Fit (**BAF**), Best Shortest Side Fit (**BSSF**), and Best Longest Side Fit (**BLSF**).
+- Provides options for data generation, user input, or loading from a file.
+- Offers training and testing modes for RL.
+- Includes visualization to monitor the packing process.
+- GPU-enabled for accelerated RL training and inference.
 
 ## Installation
+The software runs in **Python 3.10** and **Tensorflow 2.10.0**.
 
-Requires Python 3.10 and TensorFlow 2.10.
+You can refer to Tensorflow official website for the installation guideline.
+> https://www.tensorflow.org/install
 
+### From repository
+1. Clone the repository:
+```bash
+git clone https://github.com/zgtcktom/DeepPack3D.git  
+cd DeepPack3D
+```
+
+2. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-## Usage
+3. Ensure you have a compatible GPU environment if using RL methods.
 
+### From wheel
+Alternatively, you can create a distributable package.
+
+1. Creating a wheel
 ```bash
-# Run a heuristic method
-python src/deeppack3d.py bl 10 --data=file --path=data/input_worst_case.txt
-
-# Run RL inference
-python src/deeppack3d.py rl 10 --data=file --path=data/input_worst_case.txt
+python setup.py sdist bdist_wheel
 ```
 
-## Models
+2. Install wheel
+```bash
+pip install ./dist/DeepPack3D-0.1.0-py3-none-any.whl
+```
 
-Pre-trained models are stored in OneDrive and not tracked in this repository due to file size (~81MB each). To regenerate, run notebook `02_rl_training.ipynb`.
+3. Run python module
+```bash
+python -m deeppack3d rl 5 --n_iterations=-1 --data=file --path=./input.txt --verbose=1
+```
 
-| Model file | Lookahead | Training data |
-|------------|-----------|---------------|
-| `k=5.h5`  | 5  | Synthetic (original repo) |
-| `k=10.h5` | 10 | Synthetic (original repo) |
-| `bin_25x32x30_k10_mis_datos.h5` | 10 | Worst-case dataset |
+## Usage
+### Command-Line Interface
+You can run DeepPack3D directly from the command line:
 
-## Reference
+```bash
+python deeppack3d.py <method> <lookahead> [options]
+```
+#### Example Command:
+```bash
+python deeppack3d.py bl 5 --n_iterations=-1 --data=file --path=./input.txt --verbose=1
+```
 
-Tsang, Y. P., Mo, D. Y., Chung, K. T., & Lee, C. K. M. (2025). A deep reinforcement learning approach for online and concurrent 3D bin packing optimisation with bin replacement strategies. *Computers in Industry*, *164*, 104202.
+#### Arguments:
+- `<method>`: Choose the method from `{"rl", "bl", "baf", "bssf", "blsf"}`.
+- `<lookahead>`: Set the lookahead value.
+
+#### Options:
+
+- `--data`: Input source (`generated`, `input`, or `file`). 
+    - Default: `generated`.
+- `--path`: File path (used only if `--data=file`). 
+    - Default: `None`.
+- `--n_iterations`: Number of iterations (used only if `--data=generated`). 
+    - Default: `100`.
+- `--seed`: Random seed for reproducibility (used only if `--data=generated`). 
+    - Default: `None`.
+- `--verbose`: Verbose level (`0` for silent, `1` for standard, `2` for detailed). 
+    - Default: `1`.
+- `--train`: Enable training mode (used only with `method=rl`). 
+    - Default: `False`.
+- `--batch_size`: Batch size (used only with `--train`). 
+    - Default: `32`.
+- `--visualize`: Enable visualization mode. 
+    - Default: `False`.
+
+### Library
+You can also import DeepPack3D as a Python library to integrate with other systems or workflows.
+
+Example:
+```python
+from deeppack3d import deeppack3d
+
+for result in deeppack3d('rl', 5, n_iterations=-1, data='file', path='./input.txt', verbose=0):
+	if result is None:
+	 	print('new bin')
+		continue
+	_, (x, y, z), (w, h, d), _ = result
+	print(f'placing item ({w}, {h}, {d}) at ({x}, {y}, {z})')
+```
+
+## Contributing
+Contributions are welcome! Feel free to open issues or submit pull requests to improve the software.
+
+## Citation/Reference
+If you find this package useful, please feel free to cite our following work.
+
+Tsang, Y. P., Mo, D. Y., Chung, K. T., & Lee, C. K. M. (2025). A deep reinforcement learning approach for online and concurrent 3D bin packing optimisation with bin replacement strategies. *Computers in Industry*, *164*, 104202. https://doi.org/10.1016/j.compind.2024.104202
+
+## License
+This project is licensed under the MIT License. See the LICENSE file for details.
