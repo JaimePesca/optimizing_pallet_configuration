@@ -51,7 +51,9 @@ import os, shutil, time
 from env import *
 from agent import *
 
-_MODELS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'models')
+import seaborn as sns
+import matplotlib.pyplot as plt
+import tensorflow as tf
 
 heuristics = {
     'bl': bottom_left,
@@ -63,12 +65,33 @@ heuristics = {
 def deeppack3d(method, lookahead, *, n_iterations=100, seed=None, verbose=1, data='generated', path=None, train=False, visualize=False, batch_size=32):
     reset_rng(seed)
     
-    env = MultiBinPackerEnv(n_bins=1, 
-                            max_bins=1, 
-                            size=(25, 32, 30), 
-                            k=lookahead, 
-                            prealloc_items=100, 
-                            verbose=verbose)
+    # ==================================================
+    # DEFINIMOS LOS 65 BINS DEL 747-400F (ESCALA ENTERA)
+    # ==================================================
+    bin_sizes = []
+    bin_sizes += [(24, 24, 32)] * 30   # 30 pallets M1
+    bin_sizes += [(6, 12, 32)] * 23   # 23 slices superiores M1H
+    bin_sizes += [(24, 16, 32)] * 9    # 9 pallets P6P
+    bin_sizes += [(15, 16, 23)] * 2    # 2 contenedores LD1
+    bin_sizes += [(20, 20, 18)] * 1    # 1 bulk
+
+    # Environment:
+    # - n_bins = 1  -> solo 1 bin activo a la vez
+    # - max_bins = len(bin_sizes) -> hasta 65 bins secuenciales
+    # - bin_sizes = lista de tamaños reales
+        # Environment:
+    # Usamos 65 bins simultáneos, uno por cada posición física del avión
+    global_size = (55, 24, 32)   # tamaño de referencia para RL (el más grande aprox)
+
+    env = MultiBinPackerEnv(
+        n_bins=len(bin_sizes),        # ⬅️ 65 bins simultáneos
+        size=global_size,
+        max_bins=len(bin_sizes),      # ⬅️ no queremos más de 65
+        k=lookahead,
+        prealloc_items=100,
+        verbose=verbose,
+        bin_sizes=bin_sizes           # ⬅️ cada packer tiene su propio (W,H,D)
+    )
 
     if data == 'file':
         env.conveyor = FileConveyor(k=env.k, path=path).reset()
@@ -96,17 +119,17 @@ def deeppack3d(method, lookahead, *, n_iterations=100, seed=None, verbose=1, dat
             yield from agent.run(100, verbose=verbose > 1)
             agent.eps = max(agent.eps * 0.95, 0.025)
             
-        data = np.asarray([utils for utils, n_bins, ep_reward in agent.ep_history])
+        data_arr = np.asarray([utils for utils, n_bins, ep_reward in agent.ep_history])
         # y = np.ones(100)
         # data = np.convolve(data, y, 'valid') / len(y)
-        sns.lineplot(data=data)
+        sns.lineplot(data=data_arr)
         plt.savefig(f'./util.jpg')
         plt.show()
         
-        data = np.asarray([ep_reward for utils, n_bins, ep_reward in agent.ep_history])
+        data_arr = np.asarray([ep_reward for utils, n_bins, ep_reward in agent.ep_history])
         # y = np.ones(100)
         # data = np.convolve(data, y, 'valid') / len(y)
-        sns.lineplot(data=data)
+        sns.lineplot(data=data_arr)
         plt.savefig(f'./ep_reward.jpg')
         plt.show()
 
@@ -116,10 +139,10 @@ def deeppack3d(method, lookahead, *, n_iterations=100, seed=None, verbose=1, dat
         agent.q_net.save(f'{uid}.h5')
     else:
         if verbose > 0:
-            print(f'Testing with method "{method}" and lookahead {lookahead}...')
+            print(f'Testing with method "{method}" and lookahead {lookahead}.')
         
         if method == 'rl':
-            model_path = os.path.join(_MODELS_DIR, f'k={lookahead}.h5')
+            model_path = f'./models/k={lookahead}.h5'
             agent = Agent(env, train=False, verbose=verbose > 0, visualize=visualize, batch_size=batch_size)
             agent.q_net = tf.keras.models.load_model(model_path, compile=False)
             agent.eps = 0.0
@@ -129,6 +152,7 @@ def deeppack3d(method, lookahead, *, n_iterations=100, seed=None, verbose=1, dat
         start_time = time.time()
         
         try:
+            # colocaciones (placements)
             yield from agent.run(n_iterations, verbose=verbose > 1)
         except Exception as e:
             if np.all(np.array(env.conveyor.reset().peek()) == None):
@@ -136,6 +160,9 @@ def deeppack3d(method, lookahead, *, n_iterations=100, seed=None, verbose=1, dat
                     print('\n=====the end of conveyor line=====')
             else:
                 print(e)
+
+        # 👉 NUEVO: al final devolvemos el env para poder leer used_packers
+        yield env
 
         if verbose > 0:
             print()
@@ -147,6 +174,7 @@ def deeppack3d(method, lookahead, *, n_iterations=100, seed=None, verbose=1, dat
             print(f'Next items: {next_items}')
             print(f'Average space util: {avg_util}')
             print(f'Used bins: {used_items}')
+
 
 def main():
     args = parse_args()

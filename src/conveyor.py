@@ -42,11 +42,11 @@ class FileConveyor(ItemGenerator):
                 yield w, h, d
         
     def reset(self):
-        # Siempre reiniciar el archivo desde el principio
-        self.loaded = True   # si quieres, incluso podrías eliminar este atributo
-        self.buffer = []
-        self._items = []
-        self._item_iter = self._iter()
+        if not self.loaded:
+            self.loaded = True
+            self.buffer = []
+            self._items = []
+            self._item_iter = self._iter()
         return self
 
 class InputConveyor(ItemGenerator):

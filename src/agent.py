@@ -9,65 +9,48 @@ from tensorflow.keras.initializers import orthogonal
 from env import *
 import collections, itertools
 
-def q_net(k=1, size=(25, 32, 30)):
+def q_net(k=1):
     weight_decay = 0.0005
-
-    W, H, D = size          # size = (W, H, D)
-    Hmap_H, Hmap_W = D, W   # height_map es (D, W)
-
-    hmap_in = Input((Hmap_H, Hmap_W, 1))
-    amap_in = Input((Hmap_H, Hmap_W, 1))
-    const_in = Input((Hmap_H, Hmap_W, 1))
+    hmap_in = Input((32, 32, 1))
+    amap_in = Input((32, 32, 1))
     imap_in = Input((k, 3))
     imap_x = Flatten()(imap_in)
-
+    const_in = Input((32, 32, 1))
+    
     x = concatenate([hmap_in, amap_in, const_in], axis=-1)
-
-    x = Conv2D(64, 11, strides=1, padding='same', activation='relu',
-               kernel_regularizer=l2(weight_decay),
-               kernel_initializer='he_uniform')(x)
+    
+    x = Conv2D(64, 11, strides=1, activation='relu', kernel_regularizer=l2(weight_decay), kernel_initializer='he_uniform')(x)
     x = BatchNormalization()(x)
-    x = Conv2D(128, 9, strides=1, padding='same', activation='relu',
-               kernel_regularizer=l2(weight_decay),
-               kernel_initializer='he_uniform')(x)
+    x = Conv2D(128, 9, strides=1, activation='relu', kernel_regularizer=l2(weight_decay), kernel_initializer='he_uniform')(x)
     x = BatchNormalization()(x)
-    x = Conv2D(256, 7, strides=1, padding='same', activation='relu',
-               kernel_regularizer=l2(weight_decay),
-               kernel_initializer='he_uniform')(x)
+    x = Conv2D(256, 7, strides=1, activation='relu', kernel_regularizer=l2(weight_decay), kernel_initializer='he_uniform')(x)
     x = BatchNormalization()(x)
-    x = Conv2D(512, 5, strides=1, padding='same', activation='relu',
-               kernel_regularizer=l2(weight_decay),
-               kernel_initializer='he_uniform')(x)
+    x = Conv2D(512, 5, strides=1, activation='relu', kernel_regularizer=l2(weight_decay), kernel_initializer='he_uniform')(x)
     x = BatchNormalization()(x)
-    x = Conv2D(1024, 3, strides=1, padding='same', activation='relu',
-               kernel_regularizer=l2(weight_decay),
-               kernel_initializer='he_uniform')(x)
+    x = Conv2D(1024, 3, strides=1, activation='relu', kernel_regularizer=l2(weight_decay), kernel_initializer='he_uniform')(x)
     x = BatchNormalization()(x)
-    x = Conv2D(2048, 2, strides=1, padding='same', activation='relu',
-               kernel_regularizer=l2(weight_decay),
-               kernel_initializer='he_uniform')(x)
+    
+    x = Conv2D(2048, 2, strides=1, activation='relu', kernel_regularizer=l2(weight_decay), kernel_initializer='he_uniform')(x)
     x = BatchNormalization()(x)
-
+    
     x = GlobalAveragePooling2D()(x)
-
-    emb = Dense(256, kernel_regularizer=l2(weight_decay),
-                kernel_initializer='he_uniform')(imap_x)
-
+    
+    emb = Dense(256, kernel_regularizer=l2(weight_decay), kernel_initializer='he_uniform')(imap_x)
+    
     x = concatenate([x, emb], axis=-1)
-
-    x = Dense(1000, activation='relu',
-              kernel_regularizer=l2(weight_decay),
-              kernel_initializer='he_uniform')(x)
-    x = Dense(100, activation='relu',
-              kernel_regularizer=l2(weight_decay),
-              kernel_initializer='he_uniform')(x)
+    
+    x = Dense(1000, activation='relu', kernel_regularizer=l2(weight_decay), kernel_initializer='he_uniform')(x)
+    
+    x = Dense(100, activation='relu', kernel_regularizer=l2(weight_decay), kernel_initializer='he_uniform')(x)
+    
     x = Dense(1, activation='linear')(x)
-
-    model = Model([const_in, hmap_in, amap_in, imap_in], x)
+    
+    outputs = x
+    model = Model([const_in, hmap_in, amap_in, imap_in], outputs)
     return model
 
 class Agent:
-    def __init__(self, env=MultiBinPackerEnv(n_bins=2, max_bins=-1, size=(32, 32, 32), k=10, verbose=True), train=True, verbose=True, visualize=False, batch_size=32):
+    def __init__(self, env=MultiBinPackerEnv(n_bins=2, max_bins=-1, size=(32, 32, 32), k=10, verbose=True), train=True, verbose=True, visualize=False, batch_size=8):
         self.env = env
         
         self.gamma = 0.95
@@ -94,8 +77,8 @@ class Agent:
         self.visualize = visualize
         
         if self.__train:
-            self.q_net = q_net(k=env.k - 1, size=env.size)
-            self.q_net_target = q_net(k=env.k - 1, size=env.size)
+            self.q_net = q_net(k=env.k - 1)
+            self.q_net_target = q_net(k=env.k - 1)
             self.q_optimizer = tf.keras.optimizers.Adam(learning_rate=self.warmup_lr)
             self.memory = collections.deque(maxlen=1000000)
         else:
@@ -231,7 +214,6 @@ class Agent:
         if self.epoch % self.update_epochs == 0:
             print('update')
             self.q_net.set_weights([a * 0.5 + b * (1 - 0.5) for a, b in zip(self.q_net.get_weights(), self.q_net_target.get_weights())])
-        print(f'fit done, epoch {self.epoch}, loss={loss.numpy():.4f}')
         return loss
     
     def run(self, max_ep=1, verbose=False, train=None):
@@ -280,9 +262,9 @@ class Agent:
             loss = None
             if train:
                 self.memory.extend(history)
-                if len(self.memory) > 300:
+                if len(self.memory) > 1000:
                     print('update model')
-                    history = [self.memory[i] for i in np.random.choice(len(self.memory), 32)]
+                    history = [self.memory[i] for i in np.random.choice(len(self.memory), 128)]
                     loss = self.train(history)
             
             self.ep_history.append(([packer.space_utilization() for packer in self.env.used_packers], self.env.used_bins, ep_reward))

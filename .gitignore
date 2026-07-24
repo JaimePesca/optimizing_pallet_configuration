@@ -42,6 +42,20 @@ Paper/Capstone_EG_Manuscript_4th deliverable.docx
 # Extracted MDPI template zip (Definitions/ is kept, raw extract not needed)
 Paper/mdpi_template_extracted/
 
+# Generated packaging files
+manuscript_overleaf.zip
+template.tex
+
+# Confidential flight dataset (sponsor company, under NDA)
+# Only synthetic/placeholder data is tracked
+data/input_int_5Y-*.txt
+data/input_int.txt
+data/input_int_plus4000.txt
+data/input_best.txt
+data/input_best_plus1000.txt
+data/Input_worst_div10_ceil.txt
+data/registros_nuevas_cajas.txt
+
 # Raw, unedited site-visit photos (brand markings not obscured); the
 # redacted copy used in the paper lives in Paper/figures/
 Images/

@@ -458,10 +458,17 @@ $\alpha$ of the box's base area is supported at that height:
 The placement height is $p_i^y = \max_{(x,z)\in\text{footprint}}
 \mathbf{H}_j(z,x)$.
 
-\textbf{C5 --- ULD weight capacity.}
+\textbf{C5 --- ULD weight capacity (stated for completeness; not enforced).}
 \begin{equation}
 \sum_{i=1}^{N} x_{ij}\, m_i \leq C_j^w, \quad \forall\, j.
 \end{equation}
+This constraint completes the general ACLP formulation but is
+\emph{not} implemented in the DSM: box weight $m_i$ is not tracked by the
+online packing procedure (Section~\ref{sec:method}), so C5 is never
+evaluated during placement. $m_i$ and $C_j^w$ are used only \emph{ex post}
+to compute the diagnostic Weight-Based Load Factor from historical AWB
+records (Table~\ref{tab:kpis}), not as an algorithmic constraint; see
+Section~\ref{sec:limitations} for the rationale.
 
 \textbf{C6 --- Online irreversibility.}
 At step $t$, only $\mathcal{W}_t = (b_t, \ldots, b_{\min(t+k-1,N)})$
@@ -469,10 +476,13 @@ is observable; placements cannot be revised.
 
 \subsection{Scope and Assumptions}
 
-Although weight constraints (C5) are enforced at the ULD level,
-volumetric efficiency is the primary limiting factor for cut flower
+Weight capacity (C5) is part of the general formulation above but is not
+enforced by the implemented DSM, which tracks only box and ULD geometry.
+Volumetric efficiency is the primary limiting factor for cut flower
 shipments, which are typically volume-constrained due to packaging
-requirements and product fragility.
+requirements and product fragility; this is confirmed empirically in
+Section~\ref{sec:casestudy}, where the historical Weight-Based Load Factor
+(73.7\%) is consistently below the Volume-Based Load Factor (84.0\%).
 Cargo arrives sequentially in arrival order; no global pre-sorting or
 offline optimisation is applied.
 Aircraft-level ULD allocation (Decision~3) is excluded from scope.
@@ -883,7 +893,11 @@ generalisation to other carriers, routes, or aircraft has not been tested.
 Second, all ULDs are modelled as rectangular parallelepipeds; because this
 approximation neglects fuselage curvature, it tends to \emph{underestimate},
 rather than overestimate, the usable volume in lower-deck positions.
-Third, the model is purely volume-driven. This reflects the operational
+Third, the model is purely volume-driven: neither box weight $m_i$ nor
+ULD weight capacity $C_j^w$ is tracked by the implementation, so
+constraint C5 (Section~\ref{sec:formulation}) is stated for completeness
+but never enforced, and boxes and pallets carry no weight attribute
+anywhere in the DSM. This reflects the operational
 reality of the cargo, confirmed through an on-site visit to the export
 cargo terminal at El Dorado International Airport (Bogot\'{a}) to observe
 the real palletising process (Figure~\ref{fig:visit}): cut flower boxes
@@ -934,8 +948,9 @@ All authors have read and agreed to the published version of the manuscript.}
 
 \dataavailability{The historical flight dataset was provided by the sponsor
 company under a confidentiality agreement and is not publicly available.
-The implementation code is available at \url{[REPOSITORY URL]}
-(accessed [DATE]).}
+The implementation code is available at
+\url{https://github.com/JaimePesca/optimizing_pallet_configuration}
+(accessed 17 June 2026).}
 
 \conflictsofinterest{The authors declare no conflicts of interest.}
 
@@ -943,27 +958,63 @@ The implementation code is available at \url{[REPOSITORY URL]}
 % REFERENCES
 \begin{thebibliography}{99}
 
-\bibitem[Baxter(2020)]{Baxter2020}
-Baxter, G. (2020).
-Assessing the carbon footprint of a dedicated all-cargo airline: The case
-of Cargolux International Airlines.
-\textit{Journal of Urban and Environmental Engineering}, \textbf{14}, 204--217.
-\url{https://doi.org/10.4090/juee.2020.v14n2.204217}
+\bibitem[Floriculture Market(2025)]{FloricultureMarket2025}
+Floriculture Market: Global Industry Analysis and Forecast (2025--2032).
+\textit{Maximize Market Research} \textbf{2025}.
+\url{https://www.maximizemarketresearch.com/market-report/global-floriculture-market/23982/}
+(accessed 16 August 2025).
 
-\bibitem[Bonetti and Zidziunas(2022)]{Bonetti2022}
-Bonetti, J.; Zidziunas, A. Air freight impact on the Colombian flower
-industry. \textit{MBA~661~I: International Trade and Investment}, 2022.
+\bibitem[Darras(2021)]{Darras2021}
+Darras, A. Overview of the dynamic role of specialty cut flowers in the
+international cut flower market. \textit{Horticulturae} \textbf{2021},
+\textit{7}, 51.
+\url{https://doi.org/10.3390/horticulturae7030051}
 
-\bibitem[Brueckner and Abreu(2017)]{Brueckner2017}
-Brueckner, J.K.; Abreu, C. Airline fuel usage and carbon emissions:
-Determining factors. \textit{Journal of Air Transport Management}
-\textbf{2017}, \textit{62}, 10--17.
-\url{https://doi.org/10.1016/j.jairtraman.2017.01.004}
+\bibitem[Paiva et al.(2024)]{Paiva2024}
+Paiva, P.D.O.; Castro, A.C.R.; Geest, A.P.S.L.V.D.; Vieira, G.F.R.;
+Hummel, M.; Lopes, H.D.S.; Costa, J.L.D.S. Diagnosis of the production
+chain of flowers, turfgrass, and ornamental plants.
+\textit{Ornamental Horticulture} \textbf{2024}, \textit{30}, e242792.
+\url{https://doi.org/10.1590/2447-536x.v30.e242792}
+
+\bibitem[Sirisaranlak(2017)]{Sirisaranlak2017}
+Sirisaranlak, P. The cool supply chain management for cut flowers. In
+\textit{Proceedings of the 8th International Science, Social Science,
+Engineering and Energy Conference}, Thailand, 2017.
+
+\bibitem[Hava(2022)]{Hava2022}
+Hava, H. Evaluation of the effects of air cargo transportation on global
+competitiveness. \textit{Journal of Aviation} \textbf{2022}, 206--217.
+
+\bibitem[IATA(2025)]{IATA2025}
+IATA. \textit{2025 Vision for the Future of Air Cargo Facilities}; IATA:
+Montreal, Canada, 2025.
+
+\bibitem[Fioravanti et al.(2022)]{Fioravanti2022}
+Fioravanti, R.; Ansaldo, M.; Caf\'{e}, E.; Fageda, X.; Ricover, A.
+El transporte de carga a\'{e}rea en Am\'{e}rica Latina y el Caribe.
+\textit{BID} \textbf{2022}.
 
 \bibitem[Button(2020)]{Button2020}
 Button, K. The economics of Africa's floriculture air-cargo supply chain.
 \textit{Journal of Transport Geography} \textbf{2020}, \textit{86}, 102789.
 \url{https://doi.org/10.1016/j.jtrangeo.2020.102789}
+
+\bibitem[Vega(2008)]{Vega2008}
+Vega, H. The transportation costs of fresh flowers: A comparison between
+Ecuador and major exporting countries. \textit{Inter-American Development
+Bank} \textbf{2008}.
+\url{https://doi.org/10.18235/0011060}
+
+\bibitem[Bonetti and Zidziunas(2022)]{Bonetti2022}
+Bonetti, J.; Zidziunas, A. Air freight impact on the Colombian flower
+industry. \textit{MBA~661~I: International Trade and Investment}, 2022.
+
+\bibitem[Zhao et al.(2023)]{Zhao2023}
+Zhao, X.; Dong, Y.; Zuo, L. A combinatorial optimization approach for air
+cargo palletization and aircraft loading. \textit{Mathematics}
+\textbf{2023}, \textit{11}, 2798.
+\url{https://doi.org/10.3390/math11132798}
 
 \bibitem[Chan et al.(2006)]{Chan2006a}
 Chan, F.T.S.; Bhagwat, R.; Kumar, N.; Tiwari, M.K.; Lam, P. Development
@@ -972,27 +1023,32 @@ of a decision support system for air-cargo pallets loading problem.
 472--485.
 \url{https://doi.org/10.1016/j.eswa.2005.09.057}
 
-\bibitem[Chazelle(1983)]{Chazelle1983}
-Chazelle, B. The bottom-left bin-packing heuristic: An efficient
-implementation. \textit{IEEE Transactions on Computers} \textbf{1983},
-\textit{C-32}, 697--707.
+\bibitem[Paquay et al.(2018)]{Paquay2018}
+Paquay, C.; Limbourg, S.; Schyns, M. A tailored two-phase constructive
+heuristic for the three-dimensional Multiple Bin Size Bin Packing Problem.
+\textit{European Journal of Operational Research} \textbf{2018},
+\textit{267}, 52--64.
+\url{https://doi.org/10.1016/j.ejor.2017.11.010}
 
-\bibitem[Darras(2021)]{Darras2021}
-Darras, A. Overview of the dynamic role of specialty cut flowers in the
-international cut flower market. \textit{Horticulturae} \textbf{2021},
-\textit{7}, 51.
-\url{https://doi.org/10.3390/horticulturae7030051}
+\bibitem[Brueckner and Abreu(2017)]{Brueckner2017}
+Brueckner, J.K.; Abreu, C. Airline fuel usage and carbon emissions:
+Determining factors. \textit{Journal of Air Transport Management}
+\textbf{2017}, \textit{62}, 10--17.
+\url{https://doi.org/10.1016/j.jairtraman.2017.01.004}
 
-\bibitem[Fioravanti et al.(2022)]{Fioravanti2022}
-Fioravanti, R.; Ansaldo, M.; Caf\'{e}, E.; Fageda, X.; Ricover, A.
-El transporte de carga a\'{e}rea en Am\'{e}rica Latina y el Caribe.
-\textit{BID} \textbf{2022}.
+\bibitem[Queiroz J\'{u}nior et al.(2024)]{Queiroz2024}
+Queiroz J\'{u}nior, H.D.S.; Celestino, M.A.D.S.; De Souza, C.F.F.;
+Falc\~{a}o, V.A.; Camioto, F.D.C. CO$_2$ emissions in air transport.
+\textit{Transportation Research Record} \textbf{2024}, \textit{2678},
+872--883.
+\url{https://doi.org/10.1177/03611981231193407}
 
-\bibitem[Floriculture Market(2025)]{FloricultureMarket2025}
-Floriculture Market: Global Industry Analysis and Forecast (2025--2032).
-\textit{Maximize Market Research} \textbf{2025}.
-\url{https://www.maximizemarketresearch.com/market-report/global-floriculture-market/23982/}
-(accessed 16 August 2025).
+\bibitem[Tsang et al.(2025)]{Tsang2025}
+Tsang, Y.P.; Mo, D.Y.; Chung, K.T.; Lee, C.K.M. A deep reinforcement
+learning approach for online and concurrent 3D bin packing optimisation
+with bin replacement strategies. \textit{Computers in Industry}
+\textbf{2025}, \textit{164}, 104202.
+\url{https://doi.org/10.1016/j.compind.2024.104202}
 
 \bibitem[George and Robinson(1980)]{George1980}
 George, J.A.; Robinson, D.F. A heuristic for packing boxes into a
@@ -1005,37 +1061,16 @@ Martello, S.; Pisinger, D.; Vigo, D. The three-dimensional bin packing
 problem. \textit{Operations Research} \textbf{2000}, \textit{48}, 256--267.
 \url{https://doi.org/10.1287/opre.48.2.256.12386}
 
-\bibitem[Hava(2022)]{Hava2022}
-Hava, H. Evaluation of the effects of air cargo transportation on global
-competitiveness. \textit{Journal of Aviation} \textbf{2022}, 206--217.
-
-\bibitem[IATA(2025)]{IATA2025}
-IATA. \textit{2025 Vision for the Future of Air Cargo Facilities}; IATA:
-Montreal, Canada, 2025.
-
-\bibitem[ICAO(2025)]{ICAO2025}
-ICAO. ICAO Carbon Emissions Calculator, 2025.
-\url{https://www.icao.int/environmental-protection/environmental-tools/icec}
-
 \bibitem[Bortfeldt and W\"{a}scher(2013)]{Bortfeldt2013}
 Bortfeldt, A.; W\"{a}scher, G. Constraints in container loading---A
 state-of-the-art review. \textit{European Journal of Operational Research}
 \textbf{2013}, \textit{229}, 1--20.
 \url{https://doi.org/10.1016/j.ejor.2012.12.006}
 
-\bibitem[Paiva et al.(2024)]{Paiva2024}
-Paiva, P.D.O.; Castro, A.C.R.; Geest, A.P.S.L.V.D.; Vieira, G.F.R.;
-Hummel, M.; Lopes, H.D.S.; Costa, J.L.D.S. Diagnosis of the production
-chain of flowers, turfgrass, and ornamental plants.
-\textit{Ornamental Horticulture} \textbf{2024}, \textit{30}, e242792.
-\url{https://doi.org/10.1590/2447-536x.v30.e242792}
-
-\bibitem[Paquay et al.(2018)]{Paquay2018}
-Paquay, C.; Limbourg, S.; Schyns, M. A tailored two-phase constructive
-heuristic for the three-dimensional Multiple Bin Size Bin Packing Problem.
-\textit{European Journal of Operational Research} \textbf{2018},
-\textit{267}, 52--64.
-\url{https://doi.org/10.1016/j.ejor.2017.11.010}
+\bibitem[Chazelle(1983)]{Chazelle1983}
+Chazelle, B. The bottom-left bin-packing heuristic: An efficient
+implementation. \textit{IEEE Transactions on Computers} \textbf{1983},
+\textit{C-32}, 697--707.
 
 \bibitem[Zhao et al.(2021)]{Zhao2021}
 Zhao, H.; She, Q.; Zhu, C.; Yang, Y.; Xu, K. Online 3D bin packing with
@@ -1044,41 +1079,21 @@ constrained deep reinforcement learning. In \textit{Proceedings of the
 AAAI Press: Palo Alto, CA, USA, 2021; pp. 741--749.
 \url{https://doi.org/10.1609/aaai.v35i1.16155}
 
-\bibitem[Queiroz J\'{u}nior et al.(2024)]{Queiroz2024}
-Queiroz J\'{u}nior, H.D.S.; Celestino, M.A.D.S.; De Souza, C.F.F.;
-Falc\~{a}o, V.A.; Camioto, F.D.C. CO$_2$ emissions in air transport.
-\textit{Transportation Research Record} \textbf{2024}, \textit{2678},
-872--883.
-\url{https://doi.org/10.1177/03611981231193407}
-
-\bibitem[Sirisaranlak(2017)]{Sirisaranlak2017}
-Sirisaranlak, P. The cool supply chain management for cut flowers. In
-\textit{Proceedings of the 8th International Science, Social Science,
-Engineering and Energy Conference}, Thailand, 2017.
-
-\bibitem[Tsang et al.(2025)]{Tsang2025}
-Tsang, Y.P.; Mo, D.Y.; Chung, K.T.; Lee, C.K.M. A deep reinforcement
-learning approach for online and concurrent 3D bin packing optimisation
-with bin replacement strategies. \textit{Computers in Industry}
-\textbf{2025}, \textit{164}, 104202.
-\url{https://doi.org/10.1016/j.compind.2024.104202}
-
-\bibitem[Vega(2008)]{Vega2008}
-Vega, H. The transportation costs of fresh flowers: A comparison between
-Ecuador and major exporting countries. \textit{Inter-American Development
-Bank} \textbf{2008}.
-\url{https://doi.org/10.18235/0011060}
-
 \bibitem[Wilcoxon(1945)]{Wilcoxon1945}
 Wilcoxon, F. Individual comparisons by ranking methods.
 \textit{Biometrics Bulletin} \textbf{1945}, \textit{1}, 80--83.
 \url{https://doi.org/10.2307/3001968}
 
-\bibitem[Zhao et al.(2023)]{Zhao2023}
-Zhao, X.; Dong, Y.; Zuo, L. A combinatorial optimization approach for air
-cargo palletization and aircraft loading. \textit{Mathematics}
-\textbf{2023}, \textit{11}, 2798.
-\url{https://doi.org/10.3390/math11132798}
+\bibitem[Baxter(2020)]{Baxter2020}
+Baxter, G. (2020).
+Assessing the carbon footprint of a dedicated all-cargo airline: The case
+of Cargolux International Airlines.
+\textit{Journal of Urban and Environmental Engineering}, \textbf{14}, 204--217.
+\url{https://doi.org/10.4090/juee.2020.v14n2.204217}
+
+\bibitem[ICAO(2025)]{ICAO2025}
+ICAO. ICAO Carbon Emissions Calculator, 2025.
+\url{https://www.icao.int/environmental-protection/environmental-tools/icec}
 
 \end{thebibliography}
 
