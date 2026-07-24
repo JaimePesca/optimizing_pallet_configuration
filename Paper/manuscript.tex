@@ -224,10 +224,31 @@ farm dispatch to delivery.
 \label{fig:flow}
 \end{figure}
 
-The Boeing~747-400F main deck accommodates up to 30~PMC pallets (each
-244\,cm $\times$ 318\,cm $\times$ 163\,cm, nominal volume 12.7\,m$^3$)
-distributed across the main deck and lower holds
+The Boeing~747-400F configuration used in this study comprises
+65~heterogeneous ULDs distributed across the main deck and lower holds
 (Figure~\ref{fig:aircraft}).
+Table~\ref{tab:ulds} lists the four ULD types and their internal
+dimensions (width $\times$ height $\times$ depth, in decimetres as used
+in the model).
+
+\begin{table}[H]
+\caption{Boeing~747-400F ULD configuration used in the model.}
+\label{tab:ulds}
+\centering
+\begin{tabular}{@{}llrr@{}}
+\toprule
+\textbf{ULD type} & \textbf{Description} & \textbf{W$\times$H$\times$D (dm)} & \textbf{Count} \\
+\midrule
+M1  & Main-deck pallet       & $24\times24\times32$ & 30 \\
+M1H & Lower-hold pallet slice & $6\times12\times32$  & 23 \\
+P6P & Lower-hold pallet      & $24\times16\times32$ & 9  \\
+LD-1 & Lower-hold container  & $15\times16\times23$ & 2  \\
+Bulk & Bulk compartment      & $20\times20\times18$ & 1  \\
+\midrule
+\multicolumn{3}{@{}l}{\textbf{Total}} & \textbf{65} \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \begin{figure}[H]
 \centering
@@ -243,7 +264,7 @@ actual practice, the authors conducted a site visit to the SC's export
 cargo terminal at El Dorado International Airport (Bogot\'{a}) to observe
 the manual palletising process firsthand (Figure~\ref{fig:visit}).
 Boxes of heterogeneous heights are stacked and interlocked by hand onto
-the PMC pallet to conform to the contoured, sloped profile required by the
+ULD pallets to conform to the contoured, sloped profile required by the
 aircraft's lower-deck curvature, consistent with the automated conveyor
 loading procedure described above.
 
@@ -629,9 +650,17 @@ $\mathcal{F}'\leftarrow\emptyset$;\; $\mathcal{F}_\mathrm{new}\leftarrow\emptyse
 The original DeepPack3D formulation assumes a single, fixed-size bin.
 This study extends the framework to a finite, sequential multi-bin
 configuration matching the actual cargo positions of a Boeing~747-400F.
-ULDs are opened and filled in a predefined operational order; each pallet
+ULDs are opened and filled in a predefined operational order; each ULD
 is loaded until capacity is reached or no feasible placements exist, then
 closed and not revisited.
+
+The key implementation change is the \texttt{bin\_sizes} parameter
+introduced in \texttt{env.py}: a list of $(W_j, H_j, D_j)$ tuples, one
+per ULD, enabling the environment to open each successive bin with the
+correct heterogeneous dimensions (Table~\ref{tab:ulds}).
+When \texttt{bin\_sizes} is \texttt{None}, all bins share a common size,
+recovering the original single-type behaviour.
+All experiments use a lookahead window of $k=7$ boxes.
 
 Although all ULDs are currently modelled as rectangular parallelepipeds,
 real aircraft containers exhibit fuselage curvature.
@@ -726,6 +755,8 @@ Figure~\ref{fig:pareto} illustrates the Pareto distribution.
 All experiments used: Python 3.10, TensorFlow 2.10.0, NumPy 1.26.4.
 Only the heuristic-based placement policies of the DeepPack3D framework
 were activated; reinforcement learning components were not used.
+The lookahead window was set to $k=7$ boxes for all heuristics, and
+the ULD configuration followed Table~\ref{tab:ulds} (65~ULDs, 4~types).
 
 \subsection{Experimental Design}
 
