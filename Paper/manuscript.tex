@@ -67,10 +67,11 @@ The Bottom-Left (BL) heuristic achieved the highest mean volumetric
 utilisation at 88.9\%, improving on the historical manual baseline of
 84.0\% by a mean of 4.85~percentage points and by up to 8.4~percentage
 points on individual flights.
-The improvement translates into substantial additional cargo capacity
-per flight and an estimated 8\% reduction in unit freight costs,
-confirmed as statistically significant via a one-sided Wilcoxon
-signed-rank test ($W=135$, $p<0.0001$).
+The improvement translates into 181 to 1{,}514 additional boxes packed
+per flight (15{,}411 additional boxes across all 16~flights) and an
+estimated 8\% reduction in unit freight costs, confirmed as
+statistically significant via a one-sided Wilcoxon signed-rank test
+($W=135$, $p<0.0001$).
 \end{abstract}
 
 \noindent\textbf{Keywords:} air cargo logistics; cut flower supply
@@ -828,9 +829,8 @@ Only the heuristic-based placement policies of the DeepPack3D
 framework were activated; reinforcement learning components were not
 used.
 The lookahead window was set to $k=7$ boxes for all heuristics, and
-the ULD configuration followed Table~\ref{tab:ulds} (65~ULDs, 4
-types, total internal volume $\approx$735\,dm$^3$ per ULD type
-summed to $\approx$735\,m$^3$ for the aircraft).
+the ULD configuration followed Table~\ref{tab:ulds} (65~ULDs, 4~types,
+total aircraft internal volume $\approx$735\,m$^3$).
 
 \subsection{Experimental Design}
 
@@ -864,6 +864,10 @@ On 15 of 16~flights, BL outperforms the historical baseline by
 2.2~pp to 8.4~pp; on one flight (F12), BL slightly underperforms the
 historical value by 1.9~pp, which contributes to BL's lower standard
 deviation relative to the historical spread.
+In absolute terms, BL packs 181 to 1{,}514 additional boxes per flight
+beyond the historical loading, totalling 15{,}411 additional boxes
+across all 16~flights (minimum: F12, 181~boxes; maximum: F08,
+1{,}514~boxes).
 Figure~\ref{fig:perflight} shows per-flight utilisation for all
 methods.
 
@@ -970,6 +974,10 @@ practice under the conditions observed in the dataset.
 
 Higher load factors achieved by BL directly reduce per-box freight
 costs.
+The 15{,}411 additional boxes packed across all 16~flights correspond
+to an approximately 8\% increase in cargo throughput per charter cycle,
+translating to an estimated 8\% reduction in unit freight costs for
+the SC.
 Higher load factors also reduce CO$_2$ intensity below the benchmark
 of 2.84\,kg\,CO$_2$/kg, since the same flight-level emissions are
 distributed over a greater cargo weight
